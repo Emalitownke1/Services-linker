@@ -1,0 +1,12 @@
+{
+  "name": "heroku-monero-miner",
+  "version": "1.0.0",
+  "description": "Monero mining launcher for Heroku using xmrig",
+  "main": "body.js",
+  "scripts": {
+    "start": "node body.js"
+  },
+  "author": "",
+  "license": "MIT",
+  "dependencies": {}
+}
