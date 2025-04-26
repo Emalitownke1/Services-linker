@@ -1,12 +1,11 @@
 {
-  "name": "heroku-monero-miner",
+  "name": "xmr-miner",
   "version": "1.0.0",
-  "description": "Monero mining launcher for Heroku using xmrig",
+  "description": "Monero (XMR) miner using XMRig and Node.js",
   "main": "body.js",
   "scripts": {
     "start": "node body.js"
   },
-  "author": "",
-  "license": "MIT",
-  "dependencies": {}
+  "author": "YourName",
+  "license": "MIT"
 }
