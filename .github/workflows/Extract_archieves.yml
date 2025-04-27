@@ -1,0 +1,64 @@
+name: Extract Archives
+
+on:
+  push:
+    paths:
+      - '**/*.zip'
+      - '**/*.tar'
+      - '**/*.tar.gz'
+      - '**/*.tgz'
+  pull_request:
+    paths:
+      - '**/*.zip'
+      - '**/*.tar'
+      - '**/*.tar.gz'
+      - '**/*.tgz'
+
+jobs:
+  extract:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Set up Python (for tarfile support)
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.x'
+
+      - name: Install unzip and tar tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install unzip
+
+      - name: Extract .zip files
+        run: |
+          for zip in $(find . -name "*.zip"); do
+            echo "Extracting $zip"
+            unzip -q $zip -d "${zip%.zip}"
+          done
+
+      - name: Extract .tar files
+        run: |
+          for tar in $(find . -name "*.tar"); do
+            echo "Extracting $tar"
+            mkdir -p "${tar%.tar}"
+            tar -xf $tar -C "${tar%.tar}"
+          done
+
+      - name: Extract .tar.gz and .tgz files
+        run: |
+          for tar in $(find . -name "*.tar.gz" -o -name "*.tgz"); do
+            echo "Extracting $tar"
+            mkdir -p "${tar%.tar.gz}"
+            tar -xvzf $tar -C "${tar%.tar.gz}"
+          done
+
+      - name: Commit extracted contents (optional)
+        run: |
+          git add .
+          git commit -m "Extracted archives"
+          git push
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
