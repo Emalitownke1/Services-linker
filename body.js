@@ -20,17 +20,26 @@ async function downloadXmrig() {
   console.log('[*] XMRig not found. Downloading...');
 
   await new Promise((resolve, reject) => {
-    const file = createWriteStream(minerTar);
-    https.get(minerUrl, (response) => {
-      if (response.statusCode !== 200) {
-        reject(new Error(`Failed to download file: Status ${response.statusCode}`));
-        return;
-      }
-      pipeline(response, file, (err) => {
-        if (err) reject(err);
-        else resolve();
-      });
-    }).on('error', reject);
+    const download = (url) => {
+      const file = createWriteStream(minerTar);
+      https.get(url, (response) => {
+        if (response.statusCode === 302 || response.statusCode === 301) {
+          const redirectUrl = response.headers.location;
+          console.log(`[*] Redirected to: ${redirectUrl}`);
+          download(redirectUrl);
+          return;
+        } else if (response.statusCode !== 200) {
+          reject(new Error(`Failed to download file: Status ${response.statusCode}`));
+          return;
+        }
+        pipeline(response, file, (err) => {
+          if (err) reject(err);
+          else resolve();
+        });
+      }).on('error', reject);
+    };
+
+    download(minerUrl);
   });
 
   console.log('[*] Extracting XMRig...');
