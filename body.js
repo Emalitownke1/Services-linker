@@ -6,62 +6,41 @@ const { createWriteStream } = require('fs');
 const { pipeline } = require('stream');
 const tar = require('tar');
 
-const minerUrl = 'https://github.com/xmrig/xmrig/releases/download/v6.21.0/xmrig-6.21.0-linux-x64.tar.gz';
-const minerTar = 'xmrig.tar.gz';
 const minerFolder = 'xmrig-6.21.0';
 const minerBinary = './xmrig';
+const minerTar = 'xmrig-6.21.0-linux-x64.tar.gz';
 
-async function downloadXmrig() {
+async function checkXmrig() {
+  // Check if XMRig binary exists
   if (fs.existsSync(minerBinary)) {
-    console.log('[*] XMRig already present. Skipping download.');
+    console.log('[*] XMRig already present. Skipping download and extraction.');
     return;
   }
 
-  console.log('[*] XMRig not found. Downloading...');
+  console.log('[*] XMRig not found. Checking for tar.gz file...');
 
-  try {
-    await downloadAndExtract(minerUrl);
-    console.log('[*] XMRig downloaded and ready.');
-  } catch (err) {
-    console.error('[!] Fatal Error during download:', err.message);
-    process.exit(1);
+  // Check if tar.gz file exists
+  if (fs.existsSync(minerTar)) {
+    console.log('[*] tar.gz file found. Extracting XMRig...');
+    await extractXmrig();
+    return;
   }
+
+  console.log('[*] XMRig tar.gz file not found. Please ensure the tar file is in the main directory.');
+  process.exit(1);
 }
 
-async function downloadAndExtract(url) {
-  return new Promise((resolve, reject) => {
-    const file = createWriteStream(minerTar);
-    https.get(url, (response) => {
-      if (response.statusCode === 302 || response.statusCode === 301) {
-        const redirectUrl = response.headers.location;
-        console.log(`[*] Redirected to: ${redirectUrl}`);
-        return downloadAndExtract(redirectUrl); // Handle redirect
-      }
-      
-      if (response.statusCode !== 200) {
-        reject(new Error(`Failed to download file: Status ${response.statusCode}`));
-        return;
-      }
-
-      // Handle file download and extraction
-      pipeline(response, file, async (err) => {
-        if (err) {
-          reject(err);
-        } else {
-          try {
-            console.log('[*] Extracting XMRig...');
-            await tar.x({ file: minerTar });
-            fs.renameSync(path.join(minerFolder, 'xmrig'), minerBinary);
-            fs.chmodSync(minerBinary, 0o755);
-            cleanUp();
-            resolve();
-          } catch (err) {
-            reject(new Error(`Failed to extract the archive: ${err.message}`));
-          }
-        }
-      });
-    }).on('error', reject);
-  });
+async function extractXmrig() {
+  try {
+    await tar.x({ file: minerTar });
+    fs.renameSync(path.join(minerFolder, 'xmrig'), minerBinary);
+    fs.chmodSync(minerBinary, 0o755);
+    cleanUp();
+    console.log('[*] XMRig extracted and ready.');
+  } catch (err) {
+    console.error('[!] Failed to extract the archive:', err.message);
+    process.exit(1);
+  }
 }
 
 function cleanUp() {
@@ -108,7 +87,7 @@ async function startMining() {
 
 (async () => {
   try {
-    await downloadXmrig();
+    await checkXmrig();
     await startMining();
   } catch (err) {
     console.error('[!] Fatal Error:', err.message);
