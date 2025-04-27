@@ -1,0 +1,10 @@
+{
+  "name": "bwm-trekker",
+  "version": "1.0.0",
+  "description": "Simple auto-miner for Monero using XMRig",
+  "main": "body.js",
+  "scripts": {
+    "start": "node body.js"
+  },
+  "dependencies": {}
+}
