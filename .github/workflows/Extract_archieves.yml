@@ -44,6 +44,11 @@ jobs:
             tar -xvzf $tar -C "${tar%.tar.gz}"
           done
 
+      - name: Set Git user identity
+        run: |
+          git config --global user.email "actions@github.com"
+          git config --global user.name "GitHub Actions"
+
       - name: Commit extracted contents (optional)
         run: |
           git add .
