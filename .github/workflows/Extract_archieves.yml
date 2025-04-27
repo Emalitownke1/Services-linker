@@ -1,18 +1,7 @@
 name: Extract Archives
 
 on:
-  push:
-    paths:
-      - '**/*.zip'
-      - '**/*.tar'
-      - '**/*.tar.gz'
-      - '**/*.tgz'
-  pull_request:
-    paths:
-      - '**/*.zip'
-      - '**/*.tar'
-      - '**/*.tar.gz'
-      - '**/*.tgz'
+  workflow_dispatch:  # Allow manual triggering
 
 jobs:
   extract:
