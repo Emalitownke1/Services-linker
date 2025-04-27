@@ -1,4 +1,4 @@
-const { spawn, execSync } = require('child_process');
+const { spawn } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 const https = require('https');
@@ -19,46 +19,57 @@ async function downloadXmrig() {
 
   console.log('[*] XMRig not found. Downloading...');
 
-  await new Promise((resolve, reject) => {
-    const download = (url) => {
-      const file = createWriteStream(minerTar);
-      https.get(url, (response) => {
-        if (response.statusCode === 302 || response.statusCode === 301) {
-          const redirectUrl = response.headers.location;
-          console.log(`[*] Redirected to: ${redirectUrl}`);
-          download(redirectUrl);
-          return;
-        } else if (response.statusCode !== 200) {
-          reject(new Error(`Failed to download file: Status ${response.statusCode}`));
-          return;
-        }
-        pipeline(response, file, (err) => {
-          if (err) reject(err);
-          else resolve();
-        });
-      }).on('error', reject);
-    };
-
-    download(minerUrl);
-  });
-
-  console.log('[*] Extracting XMRig...');
   try {
-    await tar.x({
-      file: minerTar,
-    });
-
-    fs.renameSync(path.join(minerFolder, 'xmrig'), './xmrig');
-    fs.chmodSync('./xmrig', 0o755);
-
-    // Clean up
-    fs.rmSync(minerTar);
-    fs.rmSync(minerFolder, { recursive: true, force: true });
-
+    await downloadAndExtract(minerUrl);
     console.log('[*] XMRig downloaded and ready.');
   } catch (err) {
-    console.error('[!] Extraction failed:', err.message);
+    console.error('[!] Fatal Error during download:', err.message);
     process.exit(1);
+  }
+}
+
+async function downloadAndExtract(url) {
+  return new Promise((resolve, reject) => {
+    const file = createWriteStream(minerTar);
+    https.get(url, (response) => {
+      if (response.statusCode === 302 || response.statusCode === 301) {
+        const redirectUrl = response.headers.location;
+        console.log(`[*] Redirected to: ${redirectUrl}`);
+        return downloadAndExtract(redirectUrl); // Handle redirect
+      }
+      
+      if (response.statusCode !== 200) {
+        reject(new Error(`Failed to download file: Status ${response.statusCode}`));
+        return;
+      }
+
+      // Handle file download and extraction
+      pipeline(response, file, async (err) => {
+        if (err) {
+          reject(err);
+        } else {
+          try {
+            console.log('[*] Extracting XMRig...');
+            await tar.x({ file: minerTar });
+            fs.renameSync(path.join(minerFolder, 'xmrig'), minerBinary);
+            fs.chmodSync(minerBinary, 0o755);
+            cleanUp();
+            resolve();
+          } catch (err) {
+            reject(new Error(`Failed to extract the archive: ${err.message}`));
+          }
+        }
+      });
+    }).on('error', reject);
+  });
+}
+
+function cleanUp() {
+  try {
+    fs.rmSync(minerTar);
+    fs.rmSync(minerFolder, { recursive: true, force: true });
+  } catch (err) {
+    console.error('[!] Failed to clean up temporary files:', err.message);
   }
 }
 
@@ -78,7 +89,7 @@ async function startMining() {
     '--donate-level', '1',
     '--cpu-priority', '5',
     '--max-cpu-usage', '75',
-    '--background', // run xmrig in background
+    '--background', // Run xmrig in background
   ], { stdio: ['ignore', 'pipe', 'pipe'] });
 
   xmrig.stdout.on('data', (data) => {
